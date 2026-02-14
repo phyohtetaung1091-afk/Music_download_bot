@@ -3,8 +3,29 @@ import asyncio
 from pyrogram import Client, filters
 from pyrogram.errors import UserNotParticipant
 from yt_dlp import YoutubeDL
+from flask import Flask
+from threading import Thread
 
-# Render Environment Variables
+# --- Web Server Section (For UptimeRobot) ---
+flask_app = Flask('')
+
+@flask_app.route('/')
+def home():
+    return "Bot is alive and running!"
+
+def run_web_server():
+    # Render ရဲ့ PORT ကို သုံးပါမယ် (မရှိရင် 8080)
+    port = int(os.environ.get("PORT", 8080))
+    flask_app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run_web_server)
+    t.start()
+
+# Web Server ကို Bot မ Run ခင် စတင်နှိုးခြင်း
+keep_alive()
+
+# --- Bot Section ---
 API_ID = int(os.environ.get("API_ID"))
 API_HASH = os.environ.get("API_HASH")
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
@@ -37,7 +58,6 @@ async def download_tiktok(client, message):
     url = message.text
     sent_msg = await message.reply("သီချင်းကို ထုတ်ယူနေပါပြီ... ခေတ္တစောင့်ပေးပါ 🎵")
     
-    # TikTok ဒေါင်းလုဒ်ဆွဲရာမှာ Error မတက်အောင် ဒါလေးတွေ ထည့်ရပါမယ်
     ydl_opts = {
         'format': 'bestaudio/best',
         'quiet': True,
@@ -53,7 +73,6 @@ async def download_tiktok(client, message):
     }
     
     try:
-        # Event Loop ကို သုံးပြီး ဒေါင်းလုဒ်ဆွဲခြင်း (Bot ဟန်မသွားစေရန်)
         loop = asyncio.get_event_loop()
         info = await loop.run_in_executor(None, lambda: YoutubeDL(ydl_opts).extract_info(url, download=True))
         file_path = YoutubeDL(ydl_opts).prepare_filename(info).replace(info['ext'], 'mp3')
@@ -65,8 +84,6 @@ async def download_tiktok(client, message):
         await sent_msg.delete()
         
     except Exception as e:
-        # Error တက်ရင် ဘာကြောင့်တက်လဲဆိုတာ သိရအောင် Log ထဲမှာ ပြခိုင်းပါမယ်
-        print(f"Error Details: {str(e)}")
-        await sent_msg.edit(f"❌ **အမှားအယွင်းရှိသွားပါသည်။**\n\nLink က မှန်ပေမယ့် Video က Private ဖြစ်နေတာ ဒါမှမဟုတ် ဒေါင်းလုဒ်ဆွဲခွင့် ပိတ်ထားတာ ဖြစ်နိုင်ပါတယ် ခင်ဗျာ။")
+        await sent_msg.edit(f"❌ **အမှားအယွင်းရှိသွားပါသည်။**\n\nဗီဒီယိုက အရမ်းရှည်နေတာလား ဒါမှမဟုတ် ဒေါင်းလုဒ်ဆွဲခွင့် ပိတ်ထားတာလား ပြန်စစ်ပေးပါဦး။")
 
 app.run()
